@@ -6,6 +6,7 @@
 
 #include <vector>
 
+#include "atom/browser/api/atom_api_web_contents.h"
 #include "base/callback_helpers.h"
 #include "base/location.h"
 #include "base/memory/ptr_util.h"
@@ -16,6 +17,8 @@
 #include "components/display_compositor/gl_helper.h"
 #include "content/browser/renderer_host/render_widget_host_delegate.h"
 #include "content/browser/renderer_host/render_widget_host_impl.h"
+#include "content/browser/web_contents/web_contents_impl.h"
+#include "content/common/input_messages.h"
 #include "content/common/view_messages.h"
 #include "content/public/browser/browser_thread.h"
 #include "content/public/browser/context_factory.h"
@@ -434,6 +437,13 @@ void OffScreenRenderWidgetHostView::TextInputStateChanged(
 }
 
 void OffScreenRenderWidgetHostView::ImeCancelComposition() {
+  auto* host = static_cast<content::RenderWidgetHostImpl*>(GetRenderWidgetHost());
+  if (!host) {
+    return;
+  }
+
+  host->ImeCancelComposition();
+  RequestCompositionUpdates(false);
 }
 
 void OffScreenRenderWidgetHostView::RenderProcessGone(base::TerminationStatus,
@@ -449,7 +459,23 @@ void OffScreenRenderWidgetHostView::SetTooltipText(const base::string16 &) {
 }
 
 void OffScreenRenderWidgetHostView::SelectionBoundsChanged(
-  const ViewHostMsg_SelectionBounds_Params &) {
+    const ViewHostMsg_SelectionBounds_Params& params) {
+  auto* host = static_cast<content::RenderWidgetHostImpl*>(GetRenderWidgetHost());
+  if (!host) {
+    return;
+  }
+
+  auto web_contents = static_cast<content::WebContentsImpl*>(host->delegate());
+  if (!web_contents) {
+    return;
+  }
+
+  auto atom_web_contents = static_cast<atom::api::WebContents*>(web_contents->GetDelegate());
+  if (!atom_web_contents) {
+    return;
+  }
+
+  atom_web_contents->OnSelectionBoundsChanged(params.anchor_rect, params.focus_rect, params.is_anchor_first);
 }
 
 void OffScreenRenderWidgetHostView::CopyFromCompositingSurface(
@@ -497,7 +523,24 @@ void OffScreenRenderWidgetHostView::UnlockCompositingSurface() {
 }
 
 void OffScreenRenderWidgetHostView::ImeCompositionRangeChanged(
-  const gfx::Range &, const std::vector<gfx::Rect>&) {
+    const gfx::Range& range,
+    const std::vector<gfx::Rect>& character_bounds) {
+  auto* host = static_cast<content::RenderWidgetHostImpl*>(GetRenderWidgetHost());
+  if (!host) {
+    return;
+  }
+
+  auto web_contents = static_cast<content::WebContentsImpl*>(host->delegate());
+  if (!web_contents) {
+    return;
+  }
+
+  auto atom_web_contents = static_cast<atom::api::WebContents*>(web_contents->GetDelegate());
+  if (!atom_web_contents) {
+    return;
+  }
+
+  atom_web_contents->OnImeCompositionRangeChanged(range, character_bounds);
 }
 
 gfx::Size OffScreenRenderWidgetHostView::GetPhysicalBackingSize() const {
@@ -506,6 +549,17 @@ gfx::Size OffScreenRenderWidgetHostView::GetPhysicalBackingSize() const {
 
 gfx::Size OffScreenRenderWidgetHostView::GetRequestedRendererSize() const {
   return size_;
+}
+
+void OffScreenRenderWidgetHostView::RequestCompositionUpdates(bool enable) {
+  auto* host = static_cast<content::RenderWidgetHostImpl*>(GetRenderWidgetHost());
+  if (!host) {
+    return;
+  }
+
+  host->Send(new InputMsg_RequestCompositionUpdate(host->GetRoutingID(),
+                                                   false,
+                                                   enable));
 }
 
 #if !defined(OS_MACOSX)

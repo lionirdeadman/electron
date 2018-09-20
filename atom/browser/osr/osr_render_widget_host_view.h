@@ -148,6 +148,8 @@ class OffScreenRenderWidgetHostView
   gfx::Size GetPhysicalBackingSize() const override;
   gfx::Size GetRequestedRendererSize() const override;
 
+  void RequestCompositionUpdates(bool enable);
+
 #if !defined(OS_MACOSX)
   // content::DelegatedFrameHostClient:
   int DelegatedFrameHostGetGpuMemoryBufferClientId(void) const;

@@ -20,6 +20,7 @@
 #include "content/public/common/favicon_url.h"
 #include "native_mate/handle.h"
 #include "ui/gfx/image/image.h"
+#include "ui/gfx/range/range.h"
 
 namespace blink {
 struct WebDeviceEmulationParams;
@@ -187,6 +188,14 @@ class WebContents : public mate::TrackableObject<WebContents>,
   void SetFrameRate(int frame_rate);
   int GetFrameRate() const;
   void Invalidate();
+
+  // Methods for offscreen IME
+  void SendImeEvent(const mate::Dictionary& event);
+  void OnImeCompositionRangeChanged(const gfx::Range& range,
+                                    const std::vector<gfx::Rect>& character_bounds);
+  void OnSelectionBoundsChanged(const gfx::Rect& anchor_rect,
+                                const gfx::Rect& focus_rect,
+                                bool is_anchor_first);
 
   // Methods for zoom handling.
   void SetZoomLevel(double level);
