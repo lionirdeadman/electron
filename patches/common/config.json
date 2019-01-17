@@ -9,5 +9,7 @@
 
   "src/electron/patches/common/webrtc":  "src/third_party/webrtc",
 
+  "src/electron/patches/common/ui":  "src/ui",
+
   "src/electron/patches/common/v8":  "src/v8"
 }
