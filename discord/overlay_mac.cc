@@ -2,11 +2,15 @@
 
 namespace discord {
 
-bool Overlay::SendFrame(uint32_t, uint32_t, void*, size_t) {
+void Overlay::SendFrame(
+                 const gfx::Size& ,
+                 const gfx::Rect& ,
+                 base::UnsafeSharedMemoryRegion ,
+                 base::ReadOnlySharedMemoryRegion ,
+                 base::OnceCallback<void()> ) {
   (void)process_id_;
   (void)send_function_loaded_;
   (void)send_function_;
-  return false;
 }
 
 void Overlay::SetProcessId(uint32_t) {}
