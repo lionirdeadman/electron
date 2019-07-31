@@ -36,46 +36,14 @@ void LayeredWindowUpdater::SetActive(bool active) {
 void LayeredWindowUpdater::OnAllocatedSharedMemory(
     const gfx::Size& pixel_size,
     base::UnsafeSharedMemoryRegion region) {
-  canvas_.reset();
-
-  if (!region.IsValid())
-    return;
-
-  // Make sure |pixel_size| is sane.
-  size_t expected_bytes;
-  bool size_result = viz::ResourceSizes::MaybeSizeInBytes(
-      pixel_size, viz::ResourceFormat::RGBA_8888, &expected_bytes);
-  if (!size_result)
-    return;
-
-#if defined(WIN32)
-  canvas_ = skia::CreatePlatformCanvasWithSharedSection(
-      pixel_size.width(), pixel_size.height(), false,
-      region.GetPlatformHandle(), skia::CRASH_ON_FAILURE);
-#else
-  shm_mapping_ = region.Map();
-  if (!shm_mapping_.IsValid()) {
-    DLOG(ERROR) << "Failed to map shared memory region";
-    return;
-  }
-
-  canvas_ = skia::CreatePlatformCanvasWithPixels(
-      pixel_size.width(), pixel_size.height(), false,
-      static_cast<uint8_t*>(shm_mapping_.memory()), skia::CRASH_ON_FAILURE);
-#endif
+  pixel_size_ = pixel_size;
+  shm_ = std::move(region);
 }
 
 void LayeredWindowUpdater::Draw(const gfx::Rect& damage_rect,
                                 DrawCallback draw_callback) {
-  SkPixmap pixmap;
-  SkBitmap bitmap;
-
-  if (active_ && canvas_->peekPixels(&pixmap)) {
-    bitmap.installPixels(pixmap);
-    callback_.Run(damage_rect, bitmap);
-  }
-
-  std::move(draw_callback).Run();
+  callback_.Run(pixel_size_, damage_rect, shm_.Duplicate(),
+                base::ReadOnlySharedMemoryRegion(), std::move(draw_callback));
 }
 
 OffScreenHostDisplayClient::OffScreenHostDisplayClient(
