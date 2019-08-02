@@ -521,7 +521,25 @@ void OffScreenRenderWidgetHostView::InitAsPopup(
 void OffScreenRenderWidgetHostView::InitAsFullscreen(
     content::RenderWidgetHostView*) {}
 
-void OffScreenRenderWidgetHostView::UpdateCursor(const content::WebCursor&) {}
+void OffScreenRenderWidgetHostView::UpdateCursor(const content::WebCursor& cursor) {
+  if (!render_widget_host_) {
+    return;
+  }
+
+  auto* web_contents =
+      static_cast<content::WebContentsImpl*>(render_widget_host_->delegate());
+  if (!web_contents) {
+    return;
+  }
+
+  auto* atom_web_contents =
+      static_cast<atom::api::WebContents*>(web_contents->GetDelegate());
+  if (!atom_web_contents) {
+    return;
+  }
+
+  atom_web_contents->UpdateCursor(cursor);
+}
 
 content::CursorManager* OffScreenRenderWidgetHostView::GetCursorManager() {
   return cursor_manager_.get();
