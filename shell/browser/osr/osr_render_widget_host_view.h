@@ -14,8 +14,6 @@
 #include <windows.h>
 #endif
 
-#include "base/memory/read_only_shared_memory_region.h"
-#include "base/memory/unsafe_shared_memory_region.h"
 #include "base/process/kill.h"
 #include "base/threading/thread.h"
 #include "base/time/time.h"
@@ -58,12 +56,7 @@ class AtomBeginFrameTimer;
 
 class AtomDelegatedFrameHostClient;
 
-typedef base::Callback<void(const gfx::Size&,
-                            const gfx::Rect&,
-                            base::UnsafeSharedMemoryRegion,
-                            base::ReadOnlySharedMemoryRegion,
-                            base::OnceCallback<void()>)>
-    OnPaintCallback;
+typedef base::Callback<void(const gfx::Rect&, const SkBitmap&)> OnPaintCallback;
 typedef base::Callback<void(const gfx::Rect&)> OnPopupPaintCallback;
 
 class OffScreenRenderWidgetHostView : public content::RenderWidgetHostViewBase,

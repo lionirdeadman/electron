@@ -37,8 +37,6 @@
 #include "shell/browser/printing/print_preview_message_handler.h"
 #endif
 
-#include "discord/overlay.h"
-
 namespace blink {
 struct WebDeviceEmulationParams;
 }
@@ -85,12 +83,6 @@ class WebContents : public mate::TrackableObject<WebContents>,
                     public CommonWebContentsDelegate,
                     public content::WebContentsObserver,
                     public mojom::ElectronBrowser {
- public:
-  void SetDiscordOverlayProcessID(uint32_t process_id);
-
- private:
-  discord::Overlay overlay_ = {};
-
  public:
   enum class Type {
     BACKGROUND_PAGE,  // A DevTools extension background page.
@@ -264,11 +256,7 @@ class WebContents : public mate::TrackableObject<WebContents>,
   // Methods for offscreen rendering
   bool IsOffScreen() const;
 #if BUILDFLAG(ENABLE_OSR)
-  void OnPaint(const gfx::Size& size,
-               const gfx::Rect& dirty_rect,
-               base::UnsafeSharedMemoryRegion unsafe_shm,
-               base::ReadOnlySharedMemoryRegion read_shm,
-               base::OnceCallback<void()> done_cb);
+  void OnPaint(const gfx::Rect& dirty_rect, const SkBitmap& bitmap);
   void StartPainting();
   void StopPainting();
   bool IsPainting() const;

@@ -1009,8 +1009,7 @@ bool WebContents::EmitNavigationEvent(
               frame_routing_id);
 }
 
-void WebContents::UpdateCursor(const content::WebCursor& cursor)
-{
+void WebContents::UpdateCursor(const content::WebCursor& cursor) {
   OnCursorChange(cursor);
 }
 
@@ -2219,13 +2218,8 @@ bool WebContents::IsOffScreen() const {
 }
 
 #if BUILDFLAG(ENABLE_OSR)
-void WebContents::OnPaint(const gfx::Size& size,
-                          const gfx::Rect& dirty_rect,
-                          base::UnsafeSharedMemoryRegion unsafe_shm,
-                          base::ReadOnlySharedMemoryRegion read_shm,
-                          base::OnceCallback<void()> done_cb) {
-  overlay_.SendFrame(size, dirty_rect, std::move(unsafe_shm),
-                     std::move(read_shm), std::move(done_cb));
+void WebContents::OnPaint(const gfx::Rect& dirty_rect, const SkBitmap& bitmap) {
+  Emit("paint", dirty_rect, gfx::Image::CreateFrom1xBitmap(bitmap));
 }
 
 void WebContents::StartPainting() {
@@ -2588,8 +2582,6 @@ void WebContents::BuildPrototype(v8::Isolate* isolate,
   prototype->SetClassName(mate::StringToV8(isolate, "WebContents"));
   mate::ObjectTemplateBuilder(isolate, prototype->PrototypeTemplate())
       .MakeDestroyable()
-      .SetMethod("_setDiscordOverlayProcessId",
-                 &WebContents::SetDiscordOverlayProcessID)
       .SetMethod("setBackgroundThrottling",
                  &WebContents::SetBackgroundThrottling)
       .SetMethod("getProcessId", &WebContents::GetProcessID)
@@ -2746,10 +2738,6 @@ mate::Handle<WebContents> WebContents::FromOrCreate(
     return existing;
   else
     return mate::CreateHandle(isolate, new WebContents(isolate, web_contents));
-}
-
-void WebContents::SetDiscordOverlayProcessID(uint32_t process_id) {
-  overlay_.SetProcessId(process_id);
 }
 
 }  // namespace api

@@ -8,8 +8,6 @@
 #include <memory>
 
 #include "base/callback.h"
-#include "base/memory/read_only_shared_memory_region.h"
-#include "base/memory/unsafe_shared_memory_region.h"
 #include "base/memory/weak_ptr.h"
 #include "components/viz/host/client_frame_sink_video_capturer.h"
 
@@ -17,11 +15,7 @@ namespace electron {
 
 class OffScreenRenderWidgetHostView;
 
-typedef base::RepeatingCallback<void(const gfx::Size&,
-                                     const gfx::Rect&,
-                                     base::UnsafeSharedMemoryRegion,
-                                     base::ReadOnlySharedMemoryRegion,
-                                     base::OnceCallback<void()>)>
+typedef base::RepeatingCallback<void(const gfx::Rect&, const SkBitmap&)>
     OnPaintCallback;
 
 class OffScreenVideoConsumer : public viz::mojom::FrameSinkVideoConsumer {
