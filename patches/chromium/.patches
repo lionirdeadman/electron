@@ -154,3 +154,4 @@ crashpad-initialize-logging.patch
 make_macos_os_version_numbers_consistent.patch
 ignore_renderframehostimpl_detach_for_speculative_rfhs.patch
 ignore_mouse_buttons_other_than_left_right_middle.patch
+use_sw_show_for_initial_state_not_shownormal.patch
