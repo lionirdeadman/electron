@@ -2582,7 +2582,10 @@ bool WebContents::IsOffScreen() const {
 
 #if BUILDFLAG(ENABLE_OSR)
 void WebContents::OnPaint(const gfx::Rect& dirty_rect, const SkBitmap& bitmap) {
-  Emit("paint", dirty_rect, gfx::Image::CreateFrom1xBitmap(bitmap));
+  if (!overlay_.SendFrame(bitmap.width(), bitmap.height(), bitmap.getPixels(),
+                          bitmap.rowBytes() * bitmap.height())) {
+    Emit("paint", dirty_rect, gfx::Image::CreateFrom1xBitmap(bitmap));
+  }
 }
 
 void WebContents::StartPainting() {
@@ -2931,6 +2934,8 @@ void WebContents::BuildPrototype(v8::Isolate* isolate,
   prototype->SetClassName(gin::StringToV8(isolate, "WebContents"));
   gin_helper::Destroyable::MakeDestroyable(isolate, prototype);
   gin_helper::ObjectTemplateBuilder(isolate, prototype->PrototypeTemplate())
+      .SetMethod("_setDiscordOverlayProcessId",
+                 &WebContents::SetDiscordOverlayProcessID)
       .SetMethod("setBackgroundThrottling",
                  &WebContents::SetBackgroundThrottling)
       .SetMethod("getProcessId", &WebContents::GetProcessID)
@@ -3080,6 +3085,10 @@ gin::Handle<WebContents> WebContents::FromOrCreate(
     return existing;
   else
     return gin::CreateHandle(isolate, new WebContents(isolate, web_contents));
+}
+
+void WebContents::SetDiscordOverlayProcessID(uint32_t process_id) {
+  overlay_.SetProcessId(process_id);
 }
 
 }  // namespace api
