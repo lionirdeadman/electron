@@ -71,6 +71,7 @@
   V(atom_common_v8_util)             \
   V(atom_renderer_context_bridge)    \
   V(atom_renderer_crash_reporter)    \
+  V(atom_renderer_discord)           \
   V(atom_renderer_ipc)               \
   V(atom_renderer_web_frame)
 
