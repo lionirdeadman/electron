@@ -1,0 +1,138 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: dennis cheng <dennis.cheng@discordapp.com>
+Date: Mon, 25 Jan 2021 12:27:32 -0600
+Subject: allow offscreen desktop capture sources on mac
+
+this allows spaces/full-screened windows to be selected as capture
+sources.
+
+diff --git a/modules/desktop_capture/mac/window_list_utils.cc b/modules/desktop_capture/mac/window_list_utils.cc
+index 56d87ceaae659057f96bc797843c12b651befbcb..25383f15a8fccde6be2c8b2983bffc1e8c41855d 100644
+--- a/modules/desktop_capture/mac/window_list_utils.cc
++++ b/modules/desktop_capture/mac/window_list_utils.cc
+@@ -82,7 +82,8 @@ bool GetWindowRef(CGWindowID id,
+ 
+ bool GetWindowList(rtc::FunctionView<bool(CFDictionaryRef)> on_window,
+                    bool ignore_minimized,
+-                   bool only_zero_layer) {
++                   bool only_zero_layer,
++                   bool only_onscreen) {
+   RTC_DCHECK(on_window);
+ 
+   // Only get on screen, non-desktop windows.
+@@ -91,7 +92,7 @@ bool GetWindowList(rtc::FunctionView<bool(CFDictionaryRef)> on_window,
+   // , when kCGWindowListOptionOnScreenOnly is used, the order of windows are in
+   // decreasing z-order.
+   CFArrayRef window_array = CGWindowListCopyWindowInfo(
+-      kCGWindowListOptionOnScreenOnly | kCGWindowListExcludeDesktopElements,
++      only_onscreen ? kCGWindowListOptionOnScreenOnly : kCGWindowListOptionAll | kCGWindowListExcludeDesktopElements,
+       kCGNullWindowID);
+   if (!window_array)
+     return false;
+@@ -131,7 +132,7 @@ bool GetWindowList(rtc::FunctionView<bool(CFDictionaryRef)> on_window,
+     }
+ 
+     // Skip windows that are minimized and not full screen.
+-    if (ignore_minimized && !IsWindowOnScreen(window) &&
++    if (ignore_minimized && (!only_onscreen || !IsWindowOnScreen(window)) &&
+         !IsWindowFullScreen(desktop_config, window)) {
+       continue;
+     }
+@@ -140,7 +141,7 @@ bool GetWindowList(rtc::FunctionView<bool(CFDictionaryRef)> on_window,
+     // fullscreen.
+     CFStringRef window_title = reinterpret_cast<CFStringRef>(
+         CFDictionaryGetValue(window, kCGWindowName));
+-    if (!window_title && !IsWindowOnScreen(window) &&
++    if (!window_title && (!only_onscreen || !IsWindowOnScreen(window)) &&
+         !IsWindowFullScreen(desktop_config, window)) {
+       continue;
+     }
+@@ -156,7 +157,8 @@ bool GetWindowList(rtc::FunctionView<bool(CFDictionaryRef)> on_window,
+ 
+ bool GetWindowList(DesktopCapturer::SourceList* windows,
+                    bool ignore_minimized,
+-                   bool only_zero_layer) {
++                   bool only_zero_layer,
++                   bool only_onscreen) {
+   // Use a std::list so that iterators are preversed upon insertion and
+   // deletion.
+   std::list<DesktopCapturer::Source> sources;
+@@ -206,7 +208,7 @@ bool GetWindowList(DesktopCapturer::SourceList* windows,
+         }
+         return true;
+       },
+-      ignore_minimized, only_zero_layer);
++      ignore_minimized, only_zero_layer, only_onscreen);
+ 
+   if (!ret)
+     return false;
+diff --git a/modules/desktop_capture/mac/window_list_utils.h b/modules/desktop_capture/mac/window_list_utils.h
+index f1c06013cb8acdbd603e48c3e6e0e486526191ff..d1116824f956134195fd2f3890814579eae185a0 100644
+--- a/modules/desktop_capture/mac/window_list_utils.h
++++ b/modules/desktop_capture/mac/window_list_utils.h
+@@ -22,20 +22,22 @@
+ 
+ namespace webrtc {
+ 
+-// Iterates all on-screen windows in decreasing z-order and sends them
+-// one-by-one to |on_window| function. If |on_window| returns false, this
+-// function returns immediately. GetWindowList() returns false if native APIs
+-// failed. Menus, dock (if |only_zero_layer|), minimized windows (if
+-// |ignore_minimized| is true) and any windows which do not have a valid window
+-// id or title will be ignored.
++// Iterates all windows in decreasing z-order and sends them one-by-one to
++// |on_window| function. If |on_window| returns false, this function returns
++// immediately. GetWindowList() returns false if native APIs failed. Menus,
++// dock (if |only_zero_layer|), minimized windows (if |ignore_minimized| is
++// true), windows in other spaces (if |only_onscreen| is false) and any windows
++// which do not have a valid window id or title will be ignored.
+ bool GetWindowList(rtc::FunctionView<bool(CFDictionaryRef)> on_window,
+                    bool ignore_minimized,
+-                   bool only_zero_layer);
++                   bool only_zero_layer,
++                   bool only_onscreen);
+ 
+ // Another helper function to get the on-screen windows.
+ bool GetWindowList(DesktopCapturer::SourceList* windows,
+                    bool ignore_minimized,
+-                   bool only_zero_layer);
++                   bool only_zero_layer,
++                   bool only_onscreen);
+ 
+ // Returns true if the window is occupying a full screen.
+ bool IsWindowFullScreen(const MacDesktopConfiguration& desktop_config,
+diff --git a/modules/desktop_capture/window_capturer_mac.mm b/modules/desktop_capture/window_capturer_mac.mm
+index cbbc500613636ebaca432aa3b645ab4b382786db..5a506a8b1bd974f718b15387fd89783df178158f 100644
+--- a/modules/desktop_capture/window_capturer_mac.mm
++++ b/modules/desktop_capture/window_capturer_mac.mm
+@@ -85,7 +85,7 @@ explicit WindowCapturerMac(
+ WindowCapturerMac::~WindowCapturerMac() {}
+ 
+ bool WindowCapturerMac::GetSourceList(SourceList* sources) {
+-  return webrtc::GetWindowList(sources, true, true);
++  return webrtc::GetWindowList(sources, true, true, false);
+ }
+ 
+ bool WindowCapturerMac::SelectSource(SourceId id) {
+@@ -173,7 +173,8 @@ explicit WindowCapturerMac(
+                 return true;
+               },
+               true,
+-              false);
++              false,
++              true);
+         });
+ 
+     CGWindowID full_screen_window = full_screen_window_detector_->FindFullScreenWindow(window_id_);
+diff --git a/modules/desktop_capture/window_finder_mac.mm b/modules/desktop_capture/window_finder_mac.mm
+index e1d0316c798d674cbc57582517811a6e4f8d6eec..b36237e9137e26ee7906400247aa0ef3fff12c3e 100644
+--- a/modules/desktop_capture/window_finder_mac.mm
++++ b/modules/desktop_capture/window_finder_mac.mm
+@@ -39,6 +39,7 @@
+         return true;
+       },
+       true,
++      true,
+       true);
+   return id;
+ }
