@@ -52,7 +52,7 @@ class MediaStreamDiscordVideoSource::VideoSourceDelegate
 
   void DoRenderFrameOnIOThread(scoped_refptr<media::VideoFrame> video_frame,
                                base::TimeTicks estimated_capture_time);
-#ifdef OS_WINDOWS
+#ifdef OS_WIN
   void DoNativeFrameOnMediaThread(HANDLE texture,
                                   gfx::Size size,
                                   int64_t timestamp_us,
@@ -90,7 +90,7 @@ void MediaStreamDiscordVideoSource::VideoSourceDelegate::
   frame_callback_.Run(std::move(video_frame), estimated_capture_time);
 }
 
-#ifdef OS_WINDOWS
+#ifdef OS_WIN
 void MediaStreamDiscordVideoSource::VideoSourceDelegate::
     DoNativeFrameOnMediaThread(HANDLE texture,
                                gfx::Size size,
@@ -118,8 +118,7 @@ void MediaStreamDiscordVideoSource::VideoSourceDelegate::
           gfx::BufferUsage::GPU_READ, base::DoNothing());
   auto mailbox = sii->CreateSharedImage(
       buffer_impl.get(), gpu_factories_->GpuMemoryBufferManager(),
-      gfx::ColorSpace::CreateSRGB(), kTopLeft_GrSurfaceOrigin,
-      kOpaque_SkAlphaType,
+      gfx::ColorSpace::CreateSRGB(),
       gpu::SHARED_IMAGE_USAGE_GLES2 | gpu::SHARED_IMAGE_USAGE_RASTER |
           gpu::SHARED_IMAGE_USAGE_DISPLAY | gpu::SHARED_IMAGE_USAGE_SCANOUT);
   gpu::MailboxHolder mailbox_holder_array[media::VideoFrame::kMaxPlanes];
@@ -193,7 +192,7 @@ void MediaStreamDiscordVideoSource::VideoSourceDelegate::OnFrame(
         media::PIXEL_FORMAT_I420, size, gfx::Rect(size), size, yuv->y_stride,
         yuv->u_stride, yuv->v_stride, yuv->y, yuv->u, yuv->v,
         base::TimeDelta::FromMicroseconds(frame.timestamp_us));
-#ifdef OS_WINDOWS
+#ifdef OS_WIN
   } else if (frame.type == DISCORD_FRAME_NATIVE) {
     if (!gpu_factories_) {
       releaseCB(userData);
@@ -251,7 +250,7 @@ std::unordered_map<
 }  // namespace blink
 
 extern "C" {
-#ifdef OS_WINDOWS
+#ifdef OS_WIN
 __declspec(dllexport)
 #else
 __attribute__((visibility("default")))

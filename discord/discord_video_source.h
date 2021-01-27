@@ -24,7 +24,7 @@ struct DiscordFrame {
   int64_t timestamp_us;
   union {
     DiscordYUVFrame yuv;
-#if defined(OS_WINDOWS)
+#if defined(OS_WIN)
     HANDLE texture_handle;
 #endif
   } frame;
