@@ -211,8 +211,9 @@ void MediaStreamDiscordVideoSource::VideoSourceDelegate::OnFrame(
             CrossThreadUnretained(userData)));
     return;
 #endif
-  } else {
-    // currently unsupported type
+  }
+  if (!video_frame) {
+    // currently unsupported type or WrapExternalYuvData failed
     releaseCB(userData);
     return;
   }
